@@ -1,14 +1,14 @@
-# AI Power BI–Style Dashboard Generator
 
-## Features
+AI Power BI–Style Authoring Tool
+
+Features:
+- Visual icon palette
+- Drag & drop canvas
+- Save / load dashboard JSON
 - CSV / Excel ingestion
-- LLM-driven dashboard layout & theme
-- Power BI–style UI
-- Filters, KPIs, charts
-- Power BI export (data, schema, theme)
-- Streamlit Cloud deployable
+- Streamlit Cloud ready
 
-## Deploy
-1. Upload repo to GitHub
-2. Deploy on Streamlit Cloud
-3. Add OPENAI_API_KEY in Secrets
+Deploy:
+1. Upload to GitHub
+2. Deploy via Streamlit Cloud
+3. Done

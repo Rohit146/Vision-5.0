@@ -4,130 +4,87 @@ import pandas as pd
 import plotly.express as px
 import json
 from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
+from streamlit_elements import elements, dashboard, mui
 
-st.set_page_config(
-    page_title="AI Power BI Dashboard",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="AI Power BI Authoring", layout="wide")
 
-# -------------------- UI STYLE --------------------
+# ---------------- STYLE ----------------
 st.markdown("""
 <style>
-.stApp { background-color: #f5f6f7; font-family: Segoe UI, sans-serif; }
-[data-testid="stMetric"] {
-    background: white;
-    padding: 14px;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
+.stApp { background:#f3f4f6; font-family:Segoe UI,sans-serif; }
+.visual-tile { border:1px solid #ddd; border-radius:6px; padding:6px; cursor:pointer; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("AI Power BI–Style Dashboard Generator")
+st.title("AI Power BI–Style Authoring Tool")
 
-# -------------------- FILE UPLOAD --------------------
-file = st.file_uploader("Upload CSV or Excel", type=["csv","xlsx"])
-if not file:
-    st.stop()
-
+# ---------------- DATA ----------------
+file = st.file_uploader("Upload CSV / Excel", ["csv","xlsx"])
+if not file: st.stop()
 df = pd.read_csv(file) if file.name.endswith("csv") else pd.read_excel(file)
-st.success(f"Loaded {df.shape[0]} rows × {df.shape[1]} columns")
 
-# -------------------- SCHEMA INFERENCE --------------------
+# ---------------- SCHEMA ----------------
 def infer_schema(df):
-    measures, dimensions, dates = [], [], []
+    m,d,dt = [],[],[]
     for c in df.columns:
-        if is_datetime64_any_dtype(df[c]):
-            dates.append(c)
-        elif is_numeric_dtype(df[c]):
-            measures.append(c)
-        else:
-            dimensions.append(c)
-    return {"measures": measures, "dimensions": dimensions, "dates": dates}
+        if is_datetime64_any_dtype(df[c]): dt.append(c)
+        elif is_numeric_dtype(df[c]): m.append(c)
+        else: d.append(c)
+    return {"measures":m,"dimensions":d,"dates":dt}
 
 schema = infer_schema(df)
 
-# -------------------- LLM DASHBOARD PLAN --------------------
-def get_llm_plan(schema, sample):
-    if "OPENAI_API_KEY" not in st.secrets:
-        return {
-            "theme": {"primary":"#118DFF","background":"#FFFFFF"},
-            "kpis": schema["measures"][:3],
-            "charts": [
-                {"type":"line","x":schema["dates"][0],"y":schema["measures"][0]} if schema["dates"] else None,
-                {"type":"bar","x":schema["dimensions"][0],"y":schema["measures"][0]} if schema["dimensions"] else None
-            ]
-        }
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-        prompt = f"""You are a Power BI dashboard architect.
-Schema: {json.dumps(schema)}
-Sample data:
-{sample.head(5).to_csv(index=False)}
-Return ONLY valid JSON with theme, kpis, charts."""
-        r = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role":"user","content":prompt}],
-            temperature=0.1
-        )
-        return json.loads(r.choices[0].message.content)
-    except Exception:
-        return {
-            "theme":{"primary":"#118DFF","background":"#FFFFFF"},
-            "kpis":schema["measures"][:2],
-            "charts":[]
-        }
+# ---------------- SESSION STATE ----------------
+if "layout" not in st.session_state:
+    st.session_state.layout = []
 
-plan = get_llm_plan(schema, df)
+if "visuals" not in st.session_state:
+    st.session_state.visuals = []
 
-# -------------------- KPIs --------------------
-st.subheader("Key Metrics")
-kpi_cols = st.columns(len(plan.get("kpis",[])))
-for i,k in enumerate(plan.get("kpis",[])):
-    kpi_cols[i].metric(k, round(df[k].sum(),2))
+# ---------------- ICON PALETTE ----------------
+st.sidebar.header("Visuals")
+icons = {
+    "kpi":"📊 KPI",
+    "line":"📈 Line",
+    "bar":"📊 Bar"
+}
 
-# -------------------- FILTERS --------------------
-st.sidebar.header("Filters")
-filtered_df = df.copy()
-for d in schema["dimensions"]:
-    vals = st.sidebar.multiselect(d, sorted(df[d].dropna().unique().tolist()))
-    if vals:
-        filtered_df = filtered_df[filtered_df[d].isin(vals)]
+selected = st.sidebar.radio("Add visual", list(icons.keys()), format_func=lambda x: icons[x])
 
-# -------------------- CHARTS --------------------
-st.subheader("Insights")
-for ch in plan.get("charts",[]):
-    if not ch: 
-        continue
-    if ch["type"]=="line":
-        fig = px.line(filtered_df, x=ch["x"], y=ch["y"], template="plotly_white")
-    elif ch["type"]=="bar":
-        agg = filtered_df.groupby(ch["x"])[ch["y"]].sum().reset_index()
-        fig = px.bar(agg, x=ch["x"], y=ch["y"], template="plotly_white")
-    else:
-        continue
-    st.plotly_chart(fig, use_container_width=True)
+if st.sidebar.button("Add Visual"):
+    vid = f"v{len(st.session_state.visuals)+1}"
+    st.session_state.visuals.append({
+        "id":vid,
+        "type":selected,
+        "x": schema["dates"][0] if schema["dates"] else schema["dimensions"][0],
+        "y": schema["measures"][0],
+        "xpos":0,"ypos":0,"w":3,"h":2
+    })
 
-# -------------------- EXPORTS --------------------
-st.subheader("Power BI Exports")
+# ---------------- SAVE / LOAD ----------------
+st.sidebar.divider()
+if st.sidebar.button("Save Layout"):
+    config = {"visuals":st.session_state.visuals}
+    st.download_button("Download dashboard.json", json.dumps(config,indent=2), "dashboard.json")
 
-data_csv = filtered_df.to_csv(index=False).encode("utf-8")
-schema_json = json.dumps(schema,indent=2).encode("utf-8")
-theme_json = json.dumps({
-    "name":"AI Generated Theme",
-    "dataColors":[plan["theme"]["primary"]],
-    "background":plan["theme"]["background"],
-    "foreground":"#000000"
-},indent=2).encode("utf-8")
+uploaded_layout = st.sidebar.file_uploader("Load dashboard.json", type=["json"])
+if uploaded_layout:
+    loaded = json.load(uploaded_layout)
+    st.session_state.visuals = loaded["visuals"]
 
-c1,c2,c3 = st.columns(3)
-with c1: st.download_button("Download Data",data_csv,"data.csv")
-with c2: st.download_button("Download Schema",schema_json,"schema.json")
-with c3: st.download_button("Download Power BI Theme",theme_json,"theme.json")
-
-st.info("""Deployment:
-- Streamlit Cloud ready
-- Add OPENAI_API_KEY in secrets
-- Upload → auto dashboard → export to Power BI""")
+# ---------------- CANVAS ----------------
+with elements("canvas"):
+    with dashboard.Grid(cols=12, rowHeight=80):
+        for v in st.session_state.visuals:
+            with dashboard.Item(v["id"], x=v["xpos"], y=v["ypos"], w=v["w"], h=v["h"]):
+                with mui.Paper(elevation=2, sx={"p":1}):
+                    if v["type"]=="kpi":
+                        mui.Typography(v["y"], variant="subtitle2")
+                        mui.Typography(round(df[v["y"]].sum(),2), variant="h4")
+                    elif v["type"]=="line":
+                        fig = px.line(df, x=v["x"], y=v["y"])
+                        st.plotly_chart(fig, use_container_width=True)
+                    elif v["type"]=="bar":
+                        agg = df.groupby(v["x"])[v["y"]].sum().reset_index()
+                        fig = px.bar(agg, x=v["x"], y=v["y"])
+                        st.plotly_chart(fig, use_container_width=True)
