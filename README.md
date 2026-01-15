@@ -1,1 +1,3 @@
-Patched version fixing dashboard.Grid layout argument.
+# Streamlit → Power BI Generator
+
+Upload CSV/Excel → AI builds a Power BI template (.pbit).
