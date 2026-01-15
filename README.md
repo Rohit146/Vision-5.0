@@ -1,3 +1,10 @@
-# Streamlit → Power BI Generator
+# AI Power BI Generator (Foolproof)
 
-Upload CSV/Excel → AI builds a Power BI template (.pbit).
+✅ No missing file errors  
+✅ Works even without manual Power BI steps  
+✅ Streamlit Cloud deployable  
+
+Upload CSV / Excel → Download Power BI Template (.pbit)
+
+NOTE:
+This template opens in Power BI Desktop and acts as a scaffold.
