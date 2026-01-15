@@ -1,41 +1,33 @@
+
 import streamlit as st
 import pandas as pd
-import tempfile
-import os
 from core.profiler import profile_data
 from core.semantic_model import build_semantic_model
 from core.prompt_builder import build_prompt
 from core.openai_client import call_llm
 from core.json_sanitizer import sanitize_json
-from core.pbit_builder import build_pbit
+from ui.renderer import render_dashboard
 
-st.set_page_config(page_title="AI → Power BI Generator", layout="wide")
-st.title("📊 AI-Powered Power BI Dashboard Generator")
+st.set_page_config(layout="wide", page_title="AI Dashboard Studio")
 
-uploaded_file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
+st.title("📊 AI Dashboard Studio (Power BI–Inspired)")
 
-if uploaded_file:
-    df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(".csv") else pd.read_excel(uploaded_file)
-    st.subheader("Preview")
+file = st.file_uploader("Upload CSV or Excel", type=["csv","xlsx"])
+
+if file:
+    df = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
+    st.subheader("Data Preview")
     st.dataframe(df.head())
 
-    if st.button("🚀 Generate Power BI Dashboard"):
-        with st.spinner("Analyzing data..."):
-            profile = profile_data(df)
-            semantic = build_semantic_model(profile)
+    if st.button("🚀 Generate Professional Dashboard"):
+        profile = profile_data(df)
+        semantic = build_semantic_model(profile)
+        prompt = build_prompt(semantic)
+        raw = call_llm(prompt)
+        spec = sanitize_json(raw)
 
-        with st.spinner("Designing dashboard with AI..."):
-            prompt = build_prompt(semantic)
-            raw = call_llm(prompt)
-            spec = sanitize_json(raw)
+        st.session_state["spec"] = spec
+        st.session_state["df"] = df
 
-        with st.spinner("Building Power BI Template..."):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pbit") as tmp:
-                build_pbit(spec, tmp.name)
-
-            with open(tmp.name, "rb") as f:
-                st.download_button(
-                    "⬇️ Download Power BI Template (.pbit)",
-                    f,
-                    file_name="ai_dashboard.pbit"
-                )
+if "spec" in st.session_state:
+    render_dashboard(st.session_state["df"], st.session_state["spec"])

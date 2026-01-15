@@ -1,10 +1,14 @@
-# AI Power BI Generator (Foolproof)
 
-✅ No missing file errors  
-✅ Works even without manual Power BI steps  
-✅ Streamlit Cloud deployable  
+# AI Dashboard Studio (Power BI–Inspired)
 
-Upload CSV / Excel → Download Power BI Template (.pbit)
+✅ Upload CSV / Excel  
+✅ AI designs professional dashboard  
+✅ Power BI–style layout  
+✅ JSON-driven & fully editable  
+✅ No external BI tools  
 
-NOTE:
-This template opens in Power BI Desktop and acts as a scaffold.
+Tech:
+- Streamlit
+- Plotly
+- OpenAI
+
