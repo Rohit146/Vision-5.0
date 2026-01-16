@@ -1,14 +1,9 @@
 
-# AI Dashboard Studio (Power BI–Inspired)
+# AI Dashboard Studio (Fixed & Hardened)
 
-✅ Upload CSV / Excel  
-✅ AI designs professional dashboard  
-✅ Power BI–style layout  
-✅ JSON-driven & fully editable  
-✅ No external BI tools  
+✔ Aggregation-safe KPIs (avg → mean)
+✔ Guardrails for invalid JSON
+✔ Production-grade rendering
+✔ Power BI–inspired UI
 
-Tech:
-- Streamlit
-- Plotly
-- OpenAI
-
+If AI outputs something invalid, the dashboard still renders.

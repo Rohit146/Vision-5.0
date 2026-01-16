@@ -29,5 +29,5 @@ if file:
         st.session_state["spec"] = spec
         st.session_state["df"] = df
 
-if "spec" in st.session_state:
+if "spec" in st.session_state and "df" in st.session_state:
     render_dashboard(st.session_state["df"], st.session_state["spec"])

@@ -4,25 +4,23 @@ def build_prompt(model):
     return f"""
 You are a senior BI architect inspired by Power BI.
 
-Design a PROFESSIONAL dashboard spec in STRICT JSON:
-- KPI cards
-- Line charts
-- Bar charts
-- Pie charts
-- Slicers
+RULES:
+- Use only valid pandas aggregations: sum, mean, min, max, count
+- Do NOT invent column names
+- Output STRICT JSON only
 
 Schema:
 {json.dumps(model, indent=2)}
 
-Return JSON only:
+Return:
 {{
- "title": "...",
- "kpis": [{{"field":"", "agg":"sum"}}],
- "slicers": ["column"],
+ "title": "Dashboard title",
+ "kpis": [{{"field":"<measure>","agg":"sum|mean"}}],
+ "slicers": ["<dimension>"],
  "charts": [
-   {{"type":"line","x":"","y":""}},
-   {{"type":"bar","x":"","y":""}},
-   {{"type":"pie","names":"","values":""}}
+   {{"type":"line","x":"<date>","y":"<measure>"}},
+   {{"type":"bar","x":"<dimension>","y":"<measure>"}},
+   {{"type":"pie","names":"<dimension>","values":"<measure>"}}
  ]
 }}
 """
